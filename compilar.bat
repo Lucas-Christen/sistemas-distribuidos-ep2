@@ -7,12 +7,12 @@ mkdir out
 mkdir dist
 
 javac --release 17 -encoding UTF-8 -d out --source-path src ^
-    src\br\edu\utfpr\sdcontas\servidor\ServidorApp.java ^
-    src\br\edu\utfpr\sdcontas\cliente\ClienteApp.java
+    src\lucaschristen\sistemasdistribuidos\servidor\ServidorApp.java ^
+    src\lucaschristen\sistemasdistribuidos\cliente\ClienteApp.java
 if errorlevel 1 goto erro
 
-jar --create --file dist\servidor.jar --main-class br.edu.utfpr.sdcontas.servidor.ServidorApp -C out .
-jar --create --file dist\cliente.jar --main-class br.edu.utfpr.sdcontas.cliente.ClienteApp -C out .
+jar --create --file dist\servidor.jar --main-class lucaschristen.sistemasdistribuidos.servidor.ServidorApp -C out .
+jar --create --file dist\cliente.jar --main-class lucaschristen.sistemasdistribuidos.cliente.ClienteApp -C out .
 
 echo Pronto:
 echo   java -jar dist\servidor.jar             (janela)

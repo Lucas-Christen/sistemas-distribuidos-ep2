@@ -1,4 +1,4 @@
-# SD-Contas TCP
+# LucasChristenSistemasDistribuidos
 
 Cliente e servidor de **cadastro e sessão de usuários** sobre **sockets TCP com mensagens JSON**, seguindo o protocolo combinado na disciplina de Sistemas Distribuídos (UTFPR).
 
@@ -22,9 +22,9 @@ java -jar dist/cliente.jar               # janela do cliente
 
 ### Pelo Eclipse
 `File → Import → Existing Projects into Workspace` e escolha esta pasta. Depois, `Run As → Java Application` em:
-- `br.edu.utfpr.sdcontas.servidor.ServidorApp`
-- `br.edu.utfpr.sdcontas.cliente.ClienteApp`
-- `br.edu.utfpr.sdcontas.TodosOsTestes` (testes)
+- `lucaschristen.sistemasdistribuidos.servidor.ServidorApp`
+- `lucaschristen.sistemasdistribuidos.cliente.ClienteApp`
+- `lucaschristen.sistemasdistribuidos.TodosOsTestes` (testes)
 
 ### Testar na mão com netcat
 ```bash
@@ -90,7 +90,7 @@ Todas as mensagens estão centralizadas em `protocolo/Protocolo.java`.
 ## Estrutura
 
 ```
-src/br/edu/utfpr/sdcontas/
+src/lucaschristen/sistemasdistribuidos/
 ├── protocolo/   Json (parser próprio), Transporte (enquadramento TCP), Protocolo (constantes),
 │                Resposta, Validacao, Dados (leitura tolerante), LogSeguro (mascara senhas)
 ├── servidor/    ServidorApp (main), ServidorTcp (accept + pool), Atendimento (1 conexão),
@@ -98,7 +98,7 @@ src/br/edu/utfpr/sdcontas/
 │                Sessoes, Senhas (PBKDF2), RegistroLog, ui/JanelaServidor
 └── cliente/     ClienteApp (main), ClienteTcp (1 conexão por requisição), ApiContas (sessão),
                  ui/JanelaCliente
-teste/br/edu/utfpr/sdcontas/   TodosOsTestes, TesteProtocolo, TesteServidor, Verifica
+teste/lucaschristen/sistemasdistribuidos/   TodosOsTestes, TesteProtocolo, TesteServidor, Verifica
 ```
 
 ### Servidor
