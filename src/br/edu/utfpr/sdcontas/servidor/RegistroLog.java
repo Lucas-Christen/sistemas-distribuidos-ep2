@@ -6,13 +6,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-/**
- * Log do servidor no formato pedido pela especificação ({@code [SERVIDOR]} para
- * requisição/resposta e {@code [CLIENTE]} para login/logout), com horário.
- * Escreve no console e avisa quem estiver ouvindo (a janela do servidor).
- */
 public final class RegistroLog {
-
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final List<Consumer<String>> ouvintes = new CopyOnWriteArrayList<>();

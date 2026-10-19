@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Mini biblioteca de asserções, para os testes rodarem só com {@code java} (sem JUnit). */
 public final class Verifica {
-
     private int passou;
     private final List<String> falhas = new ArrayList<>();
     private String grupo = "";

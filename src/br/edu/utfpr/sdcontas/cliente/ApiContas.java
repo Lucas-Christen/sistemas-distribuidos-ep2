@@ -6,12 +6,7 @@ import br.edu.utfpr.sdcontas.protocolo.Resposta;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Operações do protocolo do lado do cliente, guardando o token da sessão em memória.
- * Monta as requisições exatamente com as chaves da planilha.
- */
 public final class ApiContas {
-
     private final ClienteTcp tcp;
     private volatile String token;
     private volatile String username;
@@ -36,7 +31,6 @@ public final class ApiContas {
         return token;
     }
 
-    /** login → em caso de 200, guarda o token recebido em {@code data.token}. */
     public Resposta login(String username, String senha) throws FalhaComunicacao {
         Resposta r = tcp.enviar(LOGIN, mapa("username", username, "password", senha));
         if (r.statusCode() == OK) {
@@ -67,7 +61,6 @@ public final class ApiContas {
                 "oldPassword", senhaAtual, "newPassword", novaSenha));
     }
 
-    /** deleteuser → em caso de 200 a sessão local também acaba. */
     public Resposta excluirConta() throws FalhaComunicacao {
         Resposta r = tcp.enviar(DELETE_USER, mapa("token", token, "username", username));
         if (r.statusCode() == OK) {
@@ -76,10 +69,6 @@ public final class ApiContas {
         return r;
     }
 
-    /**
-     * logout → a sessão local acaba sempre que o servidor responder, mesmo com erro
-     * (se o token já não vale lá, também não deve valer aqui).
-     */
     public Resposta logout() throws FalhaComunicacao {
         try {
             return tcp.enviar(LOGOUT, mapa("token", token));
@@ -88,16 +77,11 @@ public final class ApiContas {
         }
     }
 
-    /**
-     * Pergunta ao servidor se o token ainda vale (via getuser). Usado quando chega um
-     * 401 em outra operação: assim o cliente não depende do texto da mensagem para
-     * saber se foi "sessão expirada" ou outro motivo (ex.: senha atual errada).
-     */
     public boolean sessaoContinuaValida() {
         try {
             return consultar().statusCode() != NAO_AUTORIZADO;
         } catch (FalhaComunicacao e) {
-            return true; // não deu para saber; não derruba o usuário por causa da rede
+            return true;
         }
     }
 

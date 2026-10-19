@@ -12,12 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Recebe o texto da requisição, valida o envelope {@code {"method", "data"}} e
- * encaminha para a operação certa através de uma tabela método → função.
- */
 public final class Despachante {
-
     private final Map<String, Function<Map<String, Object>, Resposta>> rotas = new HashMap<>();
     private final RegistroLog log;
 
@@ -48,7 +43,7 @@ public final class Despachante {
         if (!(metodoBruto instanceof String metodoTexto) || metodoTexto.isBlank()) {
             return Resposta.erro(REQUISICAO_INVALIDA, MSG_METODO_AUSENTE);
         }
-        // A especificação manda o cliente usar minúsculo; aceitar "Login" não custa nada.
+
         String metodo = metodoTexto.strip().toLowerCase(Locale.ROOT);
 
         Object dataBruto = Dados.campo(requisicao, "data");

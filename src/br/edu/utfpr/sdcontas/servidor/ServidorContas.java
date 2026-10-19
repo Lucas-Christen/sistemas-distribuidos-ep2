@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Monta o servidor completo (dados, sessões, regras, TCP) e expõe o que a janela precisa mostrar. */
 public final class ServidorContas {
-
     private final RepositorioUsuarios repositorio;
     private final Sessoes sessoes;
     private final ServidorTcp tcp;

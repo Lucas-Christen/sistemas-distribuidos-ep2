@@ -1,5 +1,4 @@
 @echo off
-rem Compila codigo + testes e roda todos os testes.
 cd /d "%~dp0"
 
 if exist out-teste rmdir /s /q out-teste

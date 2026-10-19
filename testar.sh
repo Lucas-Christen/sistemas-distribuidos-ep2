@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Compila código + testes e roda todos os testes (unidade, integração, rede e concorrência).
 set -euo pipefail
 cd "$(dirname "$0")"
 

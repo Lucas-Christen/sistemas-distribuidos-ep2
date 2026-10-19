@@ -40,11 +40,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultCaret;
 
-/** Janela do servidor: escolher porta, ligar/desligar, ver log, usuários e sessões ativas. */
 public final class JanelaServidor extends JFrame {
-
     private static final long serialVersionUID = 1L;
-    private static final int LIMITE_LOG = 400_000; // caracteres mantidos na tela
+    private static final int LIMITE_LOG = 400_000;
     private static final DateTimeFormatter HORA =
             DateTimeFormatter.ofPattern("dd/MM HH:mm:ss").withZone(ZoneId.systemDefault());
 
@@ -179,12 +177,10 @@ public final class JanelaServidor extends JFrame {
             try {
                 areaLog.getDocument().remove(0, excesso);
             } catch (BadLocationException ignorada) {
-                // não acontece: o intervalo está dentro do documento
             }
         }
     }
 
-    /** IPv4 desta máquina (exceto loopback), para os colegas saberem onde conectar. */
     private static List<String> enderecosLocais(int porta) {
         List<String> lista = new ArrayList<>();
         try {
@@ -199,7 +195,6 @@ public final class JanelaServidor extends JFrame {
                 }
             }
         } catch (SocketException ignorada) {
-            // sem lista de placas: mostra só o localhost
         }
         lista.add("127.0.0.1:" + porta);
         return lista;
@@ -216,7 +211,6 @@ public final class JanelaServidor extends JFrame {
         };
     }
 
-    /** Usa o visual Nimbus (igual em Linux e Windows). Chamar antes de criar a janela. */
     public static void aplicarVisual() {
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -226,7 +220,6 @@ public final class JanelaServidor extends JFrame {
                 }
             }
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ignorada) {
-            // fica o visual padrão
         }
     }
 }

@@ -3,11 +3,7 @@ package br.edu.utfpr.sdcontas.protocolo;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Resposta padrão do servidor: {@code {"statusCode": int, "message": String, "data": T|null}}.
- */
 public record Resposta(int statusCode, String message, Object data) {
-
     public static Resposta ok(String mensagem) {
         return new Resposta(Protocolo.OK, mensagem, null);
     }
@@ -28,7 +24,6 @@ public record Resposta(int statusCode, String message, Object data) {
         return statusCode >= 200 && statusCode < 300;
     }
 
-    /** JSON enviado pelo servidor. A chave {@code data} sempre aparece, mesmo quando é {@code null}. */
     public String paraJson() {
         Map<String, Object> json = new LinkedHashMap<>();
         json.put("statusCode", statusCode);
@@ -37,11 +32,6 @@ public record Resposta(int statusCode, String message, Object data) {
         return Json.escrever(json);
     }
 
-    /**
-     * Lê a resposta de um servidor qualquer (usado pelo cliente), aceitando variações
-     * comuns em outras implementações: {@code statusCode} como 200, 200.0 ou "200";
-     * {@code message} ausente; {@code data} ausente ou como texto com JSON dentro.
-     */
     public static Resposta deJson(String texto) {
         Map<String, Object> objeto = Dados.comoObjeto(Json.ler(texto));
         if (objeto == null) {
@@ -69,13 +59,11 @@ public record Resposta(int statusCode, String message, Object data) {
                     return (int) d;
                 }
             } catch (NumberFormatException ignorada) {
-                // cai no erro abaixo
             }
         }
         throw new JsonInvalidoException("resposta sem statusCode inteiro", 0);
     }
 
-    /** Campo de texto dentro de {@code data} (ex.: "token", "name"), ou {@code null}. */
     public String textoEmData(String campo) {
         Map<String, Object> objeto = Dados.comoObjeto(data);
         if (objeto == null) {

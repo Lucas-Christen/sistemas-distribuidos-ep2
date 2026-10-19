@@ -17,12 +17,7 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Atende UMA conexão: lê uma requisição, responde e encerra (requisito "uma conexão
- * TCP por requisição, encerrada pelos dois lados").
- */
 final class Atendimento implements Runnable {
-
     private final Socket socket;
     private final Despachante despachante;
     private final RegistroLog log;
@@ -68,7 +63,7 @@ final class Atendimento implements Runnable {
             }
 
             String json = resposta.paraJson();
-            // Responde no mesmo charset em que a requisição chegou (UTF-8 quase sempre).
+
             Transporte.escreverMensagem(saida, json, charset);
             log.servidor("Resposta enviada: " + json);
             encerrarComCalma(s, entrada);
@@ -79,11 +74,6 @@ final class Atendimento implements Runnable {
         }
     }
 
-    /**
-     * Fecha a escrita (o cliente recebe fim de fluxo) e consome o que sobrou na entrada
-     * antes de fechar. Fechar com bytes não lidos faz o sistema mandar RST, e alguns
-     * clientes perdem a resposta por causa disso.
-     */
     private static void encerrarComCalma(Socket s, InputStream entrada) {
         try {
             s.shutdownOutput();
@@ -91,10 +81,8 @@ final class Atendimento implements Runnable {
             long limite = System.nanoTime() + 1_000_000_000L;
             byte[] lixo = new byte[1024];
             while (System.nanoTime() < limite && entrada.read(lixo) != -1) {
-                // descartando até o cliente fechar
             }
         } catch (IOException ignorada) {
-            // tempo esgotado ou cliente já fechou: tanto faz, vamos fechar
         }
     }
 }

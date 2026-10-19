@@ -1,5 +1,4 @@
 @echo off
-rem Compila o projeto e gera dist\servidor.jar e dist\cliente.jar (requer JDK 17 ou mais novo).
 cd /d "%~dp0"
 
 if exist out rmdir /s /q out

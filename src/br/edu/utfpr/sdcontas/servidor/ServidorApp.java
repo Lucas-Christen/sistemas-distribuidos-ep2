@@ -9,18 +9,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import javax.swing.SwingUtilities;
 
-/**
- * Ponto de entrada do servidor.
- *
- * <pre>
- *   java -jar servidor.jar                  abre a janela
- *   java -jar servidor.jar --console        pergunta a porta no terminal
- *   java -jar servidor.jar --console 21500  sobe direto na porta 21500
- *   --dados pasta                           onde fica usuarios.json (padrão: ./dados)
- * </pre>
- */
 public final class ServidorApp {
-
     private ServidorApp() {
     }
 
@@ -72,7 +61,6 @@ public final class ServidorApp {
                 return porta;
             }
         } catch (NumberFormatException ignorada) {
-            // mensagem abaixo
         }
         System.err.println("Porta inválida: '" + texto + "'. Use um número entre 1 e 65535.");
         System.exit(2);

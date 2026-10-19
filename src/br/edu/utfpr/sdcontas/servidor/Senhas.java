@@ -7,22 +7,13 @@ import java.util.Base64;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-/**
- * Hash de senha com PBKDF2-HMAC-SHA256 e sal aleatório (tudo da própria JDK).
- * Formato guardado: {@code pbkdf2-sha256$iteracoes$salBase64$hashBase64}.
- *
- * <p>Se o arquivo de usuários vazar, ninguém lê as senhas. O protocolo não muda:
- * o cliente continua mandando a senha e o servidor compara com o hash.
- */
 final class Senhas {
-
     private static final String PREFIXO = "pbkdf2-sha256";
     private static final int ITERACOES = 65_536;
     private static final int BYTES_SAL = 16;
     private static final int BITS_HASH = 256;
     private static final SecureRandom ALEATORIO = new SecureRandom();
 
-    /** Hash de uma senha qualquer, usado para gastar o mesmo tempo quando o usuário não existe. */
     static final String HASH_FICTICIO = gerarHash("Senha-ficticia#1");
 
     private Senhas() {
@@ -49,7 +40,7 @@ final class Senhas {
             byte[] sal = Base64.getDecoder().decode(partes[2]);
             byte[] esperado = Base64.getDecoder().decode(partes[3]);
             byte[] calculado = pbkdf2(senha, sal, iteracoes);
-            return MessageDigest.isEqual(esperado, calculado); // comparação em tempo constante
+            return MessageDigest.isEqual(esperado, calculado);
         } catch (IllegalArgumentException formatoInvalido) {
             return false;
         }

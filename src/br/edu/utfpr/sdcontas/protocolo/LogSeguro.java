@@ -3,9 +3,7 @@ package br.edu.utfpr.sdcontas.protocolo;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Esconde senhas antes de mostrar um JSON em log, mantendo o resto da mensagem intacto. */
 public final class LogSeguro {
-
     private LogSeguro() {
     }
 

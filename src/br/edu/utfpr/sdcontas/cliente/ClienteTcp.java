@@ -22,12 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-/**
- * Envia uma requisição e espera a resposta, abrindo uma conexão TCP nova a cada
- * chamada e fechando-a no fim (requisito da especificação).
- */
 public final class ClienteTcp {
-
     public static final int TEMPO_CONEXAO_MS = 3_000;
     public static final int TEMPO_RESPOSTA_MS = 8_000;
 
@@ -52,7 +47,6 @@ public final class ClienteTcp {
         return porta;
     }
 
-    /** Recebe cada JSON enviado ("→ ...") e recebido ("← ..."), já com senhas mascaradas. */
     public void setObservador(Consumer<String> observador) {
         this.observador = observador == null ? linha -> { } : observador;
     }

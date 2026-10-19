@@ -6,20 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Leitor e escritor de JSON feito à mão, sem bibliotecas externas.
- *
- * <p>Mapeamento usado:
- * <ul>
- *   <li>objeto → {@code LinkedHashMap<String, Object>} (mantém a ordem das chaves)</li>
- *   <li>array → {@code ArrayList<Object>}</li>
- *   <li>número inteiro → {@code Long}; número com ponto ou expoente → {@code Double}</li>
- *   <li>texto → {@code String}; true/false → {@code Boolean}; null → {@code null}</li>
- * </ul>
- * Para saber se uma chave veio com {@code null} ou não veio, use {@code Map.containsKey}.
- */
 public final class Json {
-
     private static final int PROFUNDIDADE_MAXIMA = 64;
 
     private final String texto;
@@ -29,9 +16,6 @@ public final class Json {
         this.texto = texto;
     }
 
-    // ------------------------------------------------------------------ leitura
-
-    /** Converte um texto JSON completo em objetos Java. Lança {@link JsonInvalidoException} se for inválido. */
     public static Object ler(String texto) {
         if (texto == null) {
             throw new JsonInvalidoException("texto nulo", 0);
@@ -79,7 +63,7 @@ public final class Json {
     }
 
     private Map<String, Object> lerObjeto(int profundidade) {
-        pos++; // '{'
+        pos++;
         Map<String, Object> objeto = new LinkedHashMap<>();
         pularEspacos();
         if (olhar() == '}') {
@@ -111,7 +95,7 @@ public final class Json {
     }
 
     private List<Object> lerArray(int profundidade) {
-        pos++; // '['
+        pos++;
         List<Object> lista = new ArrayList<>();
         pularEspacos();
         if (olhar() == ']') {
@@ -133,7 +117,7 @@ public final class Json {
     }
 
     private String lerTexto() {
-        pos++; // aspas de abertura
+        pos++;
         StringBuilder sb = new StringBuilder();
         while (true) {
             if (pos >= texto.length()) {
@@ -180,7 +164,7 @@ public final class Json {
                     codigo = codigo * 16 + digito;
                 }
                 pos += 4;
-                return (char) codigo; // pares substitutos (emoji) se juntam sozinhos no StringBuilder
+                return (char) codigo;
             default:
                 throw erro("escape inválido '\\" + e + "'");
         }
@@ -265,9 +249,6 @@ public final class Json {
         return new JsonInvalidoException(motivo, pos);
     }
 
-    // ------------------------------------------------------------------ escrita
-
-    /** Converte objetos Java (Map, Collection, String, Number, Boolean, null) em texto JSON compacto. */
     public static String escrever(Object valor) {
         StringBuilder sb = new StringBuilder();
         escreverValor(sb, valor);
@@ -333,7 +314,7 @@ public final class Json {
                     if (c < 0x20 || c == ' ' || c == ' ') {
                         sb.append(String.format("\\u%04x", (int) c));
                     } else {
-                        sb.append(c); // acentos saem como estão (a mensagem é enviada em UTF-8)
+                        sb.append(c);
                     }
             }
         }

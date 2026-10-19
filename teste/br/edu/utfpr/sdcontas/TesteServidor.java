@@ -27,12 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Testes de integração: sobe o servidor de verdade numa porta livre e conversa
- * com ele por socket, como um cliente qualquer da turma faria.
- */
 final class TesteServidor {
-
     private static final String SENHA = "Senha123!";
     private static final int TEMPO_CURTO_MS = 1500;
     private static int porta;
@@ -57,8 +52,6 @@ final class TesteServidor {
         persistencia(v, arquivo);
         clienteContraServidoresDiferentes(v);
     }
-
-    // ------------------------------------------------------- especificação
 
     private static void especificacao(Verifica v) throws IOException {
         v.grupo("Especificação — register");
@@ -171,8 +164,6 @@ final class TesteServidor {
                 400, "O campo 'data' deve ser um objeto JSON.");
         esperarBruto(v, "login sem data", "{\"method\":\"login\"}", 401, "Usuario ou senhas inválidos");
     }
-
-    // ---------------------------------------------------- tolerância e rede
 
     private static void robustez(Verifica v) throws Exception {
         requisitar("register", "{\"name\":\"Maria\",\"username\":\"maria\",\"password\":\"" + SENHA + "\"}");
@@ -308,7 +299,6 @@ final class TesteServidor {
         }
     }
 
-    /** O cliente contra servidores "esquisitos" (respostas formatadas, sem \n, em Windows-1252...). */
     private static void clienteContraServidoresDiferentes(Verifica v) throws Exception {
         v.grupo("Cliente contra servidores com outros jeitos de responder");
         v.igual("resposta formatada em várias linhas, sem \\n no fim, e fecha",
@@ -327,8 +317,6 @@ final class TesteServidor {
             new ClienteTcp("127.0.0.1", livre).enviar("getuser", Map.of());
         });
     }
-
-    // ------------------------------------------------------------- utilidades
 
     private static Map<String, Object> esperar(Verifica v, String descricao, String metodo, String dataJson,
                                                int status, String mensagem) throws IOException {
@@ -357,7 +345,6 @@ final class TesteServidor {
         return new String(trocarBytesCru(envio), StandardCharsets.UTF_8).strip();
     }
 
-    /** Envia os bytes sem fechar a escrita e lê até o servidor fechar a conexão. */
     private static byte[] trocarBytesCru(byte[] envio) throws IOException {
         try (Socket s = new Socket("127.0.0.1", porta)) {
             s.setSoTimeout(5000);
@@ -477,7 +464,6 @@ final class TesteServidor {
         }
     }
 
-    /** Servidor de uma conexão só, que responde exatamente o texto dado. */
     private static int servidorFalso(String resposta, boolean fecharDepois) throws Exception {
         try (ServerSocket falso = new ServerSocket(0)) {
             Thread t = new Thread(() -> {
@@ -487,10 +473,9 @@ final class TesteServidor {
                     s.getOutputStream().write(resposta.getBytes(StandardCharsets.UTF_8));
                     s.getOutputStream().flush();
                     if (!fecharDepois) {
-                        Thread.sleep(3000); // segura a conexão aberta: o cliente não pode depender do fechamento
+                        Thread.sleep(3000);
                     }
                 } catch (Exception ignorada) {
-                    // fim do servidor falso
                 }
             });
             t.setDaemon(true);

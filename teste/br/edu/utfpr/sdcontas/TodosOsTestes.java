@@ -1,8 +1,6 @@
 package br.edu.utfpr.sdcontas;
 
-/** Roda todos os testes: {@code java -cp out br.edu.utfpr.sdcontas.TodosOsTestes}. */
 public final class TodosOsTestes {
-
     private TodosOsTestes() {
     }
 

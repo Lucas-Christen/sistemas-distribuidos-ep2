@@ -47,13 +47,7 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultCaret;
 
-/**
- * Janela do cliente. Duas telas (CardLayout): "acesso" (servidor, login e cadastro)
- * e "conta" (dados, alterar nome/senha, sair, excluir). Embaixo fica o painel de
- * tráfego com cada JSON enviado e recebido, útil para testar com servidores de colegas.
- */
 public final class JanelaCliente extends JFrame {
-
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final Color VERDE = new Color(0, 120, 0);
@@ -68,12 +62,10 @@ public final class JanelaCliente extends JFrame {
     private final JPanel painelTelas = new JPanel(telas);
     private final transient List<JComponent> acoes = new ArrayList<>();
 
-    // servidor
     private final JTextField campoHost = new JTextField(14);
     private final JSpinner campoPorta = new JSpinner(new SpinnerNumberModel(PORTA_PADRAO, 1, 65535, 1));
     private final JCheckBox validarAntes = new JCheckBox("Validar campos antes de enviar", true);
 
-    // acesso
     private final JTabbedPane abasAcesso = new JTabbedPane();
     private final JTextField loginUsername = new JTextField(18);
     private final JPasswordField loginSenha = new JPasswordField(18);
@@ -82,7 +74,6 @@ public final class JanelaCliente extends JFrame {
     private final JPasswordField cadSenha = new JPasswordField(18);
     private final JPasswordField cadConfirma = new JPasswordField(18);
 
-    // conta
     private final JLabel tituloConta = new JLabel();
     private final JLabel valorNome = new JLabel("—");
     private final JLabel valorUsername = new JLabel("—");
@@ -91,7 +82,6 @@ public final class JanelaCliente extends JFrame {
     private final JPasswordField senhaNova = new JPasswordField(18);
     private final JPasswordField senhaConfirma = new JPasswordField(18);
 
-    // rodapé
     private final JTextArea trafego = new JTextArea(8, 60);
     private final JLabel status = new JLabel(" ");
 
@@ -132,8 +122,6 @@ public final class JanelaCliente extends JFrame {
         setLocationRelativeTo(null);
         telas.show(painelTelas, TELA_ACESSO);
     }
-
-    // =============================================================== telas
 
     private JPanel montarTelaAcesso() {
         JPanel servidor = formulario("Servidor",
@@ -219,11 +207,9 @@ public final class JanelaCliente extends JFrame {
         conteudo.add(colunas, BorderLayout.CENTER);
         JPanel tela = new JPanel(new BorderLayout());
         tela.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        tela.add(conteudo, BorderLayout.NORTH); // mantém tudo encostado no topo
+        tela.add(conteudo, BorderLayout.NORTH);
         return tela;
     }
-
-    // ============================================================= ações
 
     private void entrar() {
         String username = loginUsername.getText().strip();
@@ -292,7 +278,7 @@ public final class JanelaCliente extends JFrame {
                 }
                 mostrar(r);
             } else if (r.statusCode() == NAO_AUTORIZADO) {
-                sessaoEncerrada(r); // no getuser, 401 só pode ser token inválido
+                sessaoEncerrada(r);
             } else {
                 mostrar(r);
             }
@@ -378,10 +364,6 @@ public final class JanelaCliente extends JFrame {
         });
     }
 
-    /**
-     * Erro numa operação autenticada. Se for 401, pergunta ao servidor (getuser) se o
-     * token ainda vale antes de deslogar: "Senha atual incorreta" também pode vir como 401.
-     */
     private void tratarErro(Resposta r) {
         if (r.statusCode() != NAO_AUTORIZADO) {
             mostrar(r);
@@ -405,8 +387,6 @@ public final class JanelaCliente extends JFrame {
         mostrarStatus("Sessão encerrada pelo servidor: " + r.statusCode() + " · " + r.message()
                 + " Faça login novamente.", VERMELHO);
     }
-
-    // ========================================================== navegação
 
     private void abrirConta() {
         tituloConta.setText("Logado como " + api.getUsername() + " em "
@@ -433,17 +413,13 @@ public final class JanelaCliente extends JFrame {
             preferencias.put("host", host);
             preferencias.putInt("porta", porta);
         } catch (RuntimeException semPreferencias) {
-            // sem permissão para gravar preferências: só não lembra na próxima vez
         }
     }
-
-    // ===================================================== execução em 2º plano
 
     private void executar(Callable<Resposta> chamada, Consumer<Resposta> depois) {
         executar(chamada, depois, falha -> mostrarStatus(falha.getMessage(), VERMELHO));
     }
 
-    /** Roda a chamada de rede fora da thread da interface e trava os botões enquanto isso. */
     private void executar(Callable<Resposta> chamada, Consumer<Resposta> depois,
                           Consumer<FalhaComunicacao> casoFalhe) {
         ocupado(true);
@@ -478,8 +454,6 @@ public final class JanelaCliente extends JFrame {
         setCursor(sim ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
     }
 
-    // ============================================================ mensagens
-
     private void mostrar(Resposta r) {
         mostrarStatus(r.statusCode() + " · " + r.message(), r.sucesso() ? VERDE : VERMELHO);
     }
@@ -496,8 +470,6 @@ public final class JanelaCliente extends JFrame {
     private void registrarTrafego(String linha) {
         trafego.append("[" + LocalTime.now().format(HORA) + "] " + linha + "\n");
     }
-
-    // ============================================================ layout
 
     private JButton acao(JButton botao) {
         acoes.add(botao);
@@ -549,7 +521,6 @@ public final class JanelaCliente extends JFrame {
         return rotulo;
     }
 
-    /** Usa o visual Nimbus (igual em Linux e Windows). Chamar antes de criar a janela. */
     public static void aplicarVisual() {
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
@@ -559,7 +530,6 @@ public final class JanelaCliente extends JFrame {
                 }
             }
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ignorada) {
-            // fica o visual padrão
         }
     }
 }

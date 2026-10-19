@@ -10,12 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Regras de negócio de cada método do protocolo. Recebe o objeto {@code data}
- * da requisição e devolve a {@link Resposta} já com status e mensagem da especificação.
- */
 public final class ServicoContas {
-
     private final RepositorioUsuarios repositorio;
     private final Sessoes sessoes;
     private final RegistroLog log;
@@ -26,14 +21,12 @@ public final class ServicoContas {
         this.log = log;
     }
 
-    // ------------------------------------------------------------------ login
     public Resposta login(Map<String, Object> dados) {
         String username = Dados.texto(dados, "username");
         String senha = Dados.texto(dados, "password");
 
         Optional<Usuario> usuario = repositorio.buscar(username);
-        // Mesmo quando o usuário não existe, calcula um hash: assim o tempo de resposta
-        // não denuncia quais usernames estão cadastrados.
+
         String hash = usuario.map(Usuario::password).orElse(Senhas.HASH_FICTICIO);
         boolean senhaConfere = Senhas.confere(senha, hash);
         if (usuario.isEmpty() || !senhaConfere) {
@@ -41,7 +34,7 @@ public final class ServicoContas {
         }
 
         String token = sessoes.abrir(username);
-        if (!repositorio.existe(username)) { // conta excluída enquanto o login acontecia
+        if (!repositorio.existe(username)) {
             sessoes.encerrar(token);
             return Resposta.erro(NAO_AUTORIZADO, MSG_LOGIN_INVALIDO);
         }
@@ -51,13 +44,11 @@ public final class ServicoContas {
         return Resposta.ok(MSG_LOGIN_OK, resposta);
     }
 
-    // --------------------------------------------------------------- register
     public Resposta register(Map<String, Object> dados) {
         String nome = normalizar(Dados.texto(dados, "name"));
         String username = Dados.texto(dados, "username");
         String senha = Dados.texto(dados, "password");
 
-        // A especificação manda checar o conflito antes de validar os campos.
         if (repositorio.existe(username)) {
             return Resposta.erro(CONFLITO, MSG_USERNAME_EM_USO);
         }
@@ -71,13 +62,12 @@ public final class ServicoContas {
             return Resposta.erro(REQUISICAO_INVALIDA, msgCampoForaDoPadrao("password"));
         }
         if (!repositorio.inserir(new Usuario(nome, username, Senhas.gerarHash(senha)))) {
-            return Resposta.erro(CONFLITO, MSG_USERNAME_EM_USO); // outro cadastro igual chegou junto
+            return Resposta.erro(CONFLITO, MSG_USERNAME_EM_USO);
         }
         log.info("Usuário cadastrado: " + username);
         return Resposta.criado(MSG_CADASTRO_OK);
     }
 
-    // ----------------------------------------------------------------- logout
     public Resposta logout(Map<String, Object> dados) {
         Autenticacao auth = autenticar(dados);
         if (auth.falhou()) {
@@ -88,7 +78,6 @@ public final class ServicoContas {
         return Resposta.ok(MSG_LOGOUT_OK);
     }
 
-    // ---------------------------------------------------------------- getuser
     public Resposta getUser(Map<String, Object> dados) {
         Autenticacao auth = autenticarDono(dados);
         if (auth.falhou()) {
@@ -104,7 +93,6 @@ public final class ServicoContas {
         return Resposta.ok(MSG_USUARIO_ENCONTRADO, resposta);
     }
 
-    // --------------------------------------------------------- updateusername
     public Resposta updateUserName(Map<String, Object> dados) {
         Autenticacao auth = autenticarDono(dados);
         if (auth.falhou()) {
@@ -120,7 +108,6 @@ public final class ServicoContas {
         return Resposta.ok(MSG_NOME_ATUALIZADO);
     }
 
-    // ----------------------------------------------------- updateuserpassword
     public Resposta updateUserPassword(Map<String, Object> dados) {
         Autenticacao auth = autenticarDono(dados);
         if (auth.falhou()) {
@@ -135,7 +122,7 @@ public final class ServicoContas {
         if (!Senhas.confere(senhaAtual, usuario.get().password())) {
             return Resposta.erro(NAO_AUTORIZADO, MSG_SENHA_ATUAL_INCORRETA);
         }
-        // Senha nova igual à atual não é aceita (mesma resposta de senha fora do padrão).
+
         if (senhaAtual.equals(novaSenha) || !Validacao.senhaValida(novaSenha)) {
             return Resposta.erro(REQUISICAO_INVALIDA, MSG_SENHA_FORA_DO_PADRAO);
         }
@@ -145,7 +132,6 @@ public final class ServicoContas {
         return Resposta.ok(MSG_SENHA_ATUALIZADA);
     }
 
-    // ------------------------------------------------------------- deleteuser
     public Resposta deleteUser(Map<String, Object> dados) {
         Autenticacao auth = autenticarDono(dados);
         if (auth.falhou()) {
@@ -159,19 +145,12 @@ public final class ServicoContas {
         return Resposta.ok(MSG_USUARIO_DELETADO);
     }
 
-    // ------------------------------------------------------- autenticação
-
-    /** Resultado da checagem do token: ou o usuário dono do token, ou a resposta de erro. */
     private record Autenticacao(String token, String username, Resposta erro) {
         boolean falhou() {
             return erro != null;
         }
     }
 
-    /**
-     * Valida o token. Ausente/vazio → 400; qualquer outro valor que não seja um
-     * login ativo (inclusive texto que nem é UUID) → 401 "Sessão expirada ou encerrada.".
-     */
     private Autenticacao autenticar(Map<String, Object> dados) {
         Object valor = Dados.campo(dados, "token");
         if (valor == null || (valor instanceof String s && s.isBlank())) {
@@ -185,11 +164,6 @@ public final class ServicoContas {
         return new Autenticacao(token, username.get(), null);
     }
 
-    /**
-     * Valida o token e confere se o {@code username} enviado (o ID da operação, em negrito
-     * na planilha) é o dono do token. Se o cliente não mandar username, vale o dono do token.
-     * Operar sobre outro usuário seria função de admin, que ainda não foi especificada → 401.
-     */
     private Autenticacao autenticarDono(Map<String, Object> dados) {
         Autenticacao auth = autenticar(dados);
         if (auth.falhou()) {
@@ -203,7 +177,6 @@ public final class ServicoContas {
         return auth;
     }
 
-    /** "José" pode chegar como "Jose" + acento combinado; normaliza para a forma composta. */
     private static String normalizar(String texto) {
         return texto == null ? null : Normalizer.normalize(texto, Normalizer.Form.NFC);
     }

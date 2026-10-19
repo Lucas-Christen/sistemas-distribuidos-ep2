@@ -14,14 +14,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Socket servidor: uma thread só aceita conexões e entrega cada uma a um pool
- * de threads com limite. Se o pool lotar, o cliente recebe 500 na hora em vez
- * de ficar esperando.
- */
 public final class ServidorTcp {
-
-    public static final int TEMPO_LIMITE_PADRAO_MS = 30_000; // folga para testes digitando no telnet/nc
+    public static final int TEMPO_LIMITE_PADRAO_MS = 30_000;
     private static final int THREADS_MIN = 4;
     private static final int THREADS_MAX = 64;
 
@@ -45,7 +39,7 @@ public final class ServidorTcp {
         if (serverSocket != null) {
             return;
         }
-        serverSocket = new ServerSocket(portaPedida); // escuta em todas as interfaces de rede
+        serverSocket = new ServerSocket(portaPedida);
         pool = new ThreadPoolExecutor(THREADS_MIN, THREADS_MAX, 30, TimeUnit.SECONDS,
                 new SynchronousQueue<>(), fabrica("atendimento"));
         aceitador = fabrica("aceitador").newThread(this::aceitarConexoes);
@@ -60,7 +54,6 @@ public final class ServidorTcp {
         try {
             serverSocket.close();
         } catch (IOException ignorada) {
-            // já estava fechado
         }
         pool.shutdown();
         try {
@@ -78,7 +71,6 @@ public final class ServidorTcp {
         return serverSocket != null && !serverSocket.isClosed();
     }
 
-    /** Porta real (útil quando se pede a porta 0 e o sistema escolhe uma livre). */
     public int getPorta() {
         ServerSocket s = serverSocket;
         return s == null ? portaPedida : s.getLocalPort();
@@ -108,7 +100,6 @@ public final class ServidorTcp {
             String json = Resposta.erro(Protocolo.ERRO_INTERNO, Protocolo.MSG_SOBRECARGA).paraJson();
             Transporte.escreverMensagem(s.getOutputStream(), json, StandardCharsets.UTF_8);
         } catch (IOException ignorada) {
-            // cliente já foi embora
         }
     }
 
@@ -116,7 +107,7 @@ public final class ServidorTcp {
         AtomicInteger contador = new AtomicInteger();
         return tarefa -> {
             Thread t = new Thread(tarefa, prefixo + "-" + contador.incrementAndGet());
-            t.setDaemon(!prefixo.equals("aceitador")); // o aceitador mantém a JVM viva no modo console
+            t.setDaemon(!prefixo.equals("aceitador"));
             return t;
         };
     }

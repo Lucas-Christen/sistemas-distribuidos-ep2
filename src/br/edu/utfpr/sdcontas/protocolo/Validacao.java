@@ -1,11 +1,6 @@
 package br.edu.utfpr.sdcontas.protocolo;
 
-/**
- * Regras de validação de campos do documento de requisitos.
- * Escritas como laços explícitos (sem regex) para ficar fácil de explicar regra por regra.
- */
 public final class Validacao {
-
     private Validacao() {
     }
 
@@ -25,10 +20,6 @@ public final class Validacao {
             "Senha: 8 a 20 caracteres, com pelo menos 1 maiúscula, 1 minúscula, 1 número e 1 símbolo entre "
                     + "# . * & % $ @ ! ( ) - _ = +";
 
-    /**
-     * name: letras maiúsculas e minúsculas, pode ter espaços, sem símbolos, 1 a 60 caracteres.
-     * Letras acentuadas são aceitas (a especificação só proíbe acento no username).
-     */
     public static boolean nomeValido(String nome) {
         if (nome == null) {
             return false;
@@ -47,10 +38,9 @@ public final class Validacao {
             }
             i += Character.charCount(caractere);
         }
-        return temLetra; // "   " não é um nome
+        return temLetra;
     }
 
-    /** username: letras minúsculas, números, '.' e '_', sem acento e sem espaço, 3 a 20 caracteres. */
     public static boolean usernameValido(String username) {
         if (username == null || username.length() < USERNAME_MIN || username.length() > USERNAME_MAX) {
             return false;
@@ -64,10 +54,6 @@ public final class Validacao {
         return true;
     }
 
-    /**
-     * password: 8 a 20 caracteres, só letras, números e os símbolos permitidos,
-     * com no mínimo 1 maiúscula, 1 minúscula, 1 número e 1 símbolo.
-     */
     public static boolean senhaValida(String senha) {
         if (senha == null || senha.length() < SENHA_MIN || senha.length() > SENHA_MAX) {
             return false;
@@ -86,7 +72,7 @@ public final class Validacao {
             } else if (ESPECIAIS_SENHA.indexOf(c) >= 0) {
                 simbolo = true;
             } else {
-                return false; // caractere fora da lista (espaço, '?', acento...)
+                return false;
             }
         }
         return maiuscula && minuscula && numero && simbolo;

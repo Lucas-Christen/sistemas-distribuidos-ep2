@@ -1,21 +1,11 @@
 package br.edu.utfpr.sdcontas.protocolo;
 
-/**
- * Tudo o que foi combinado com a turma (planilha "Protocolo de Troca de Mensagens"
- * e documento de requisitos): nomes dos métodos, status codes e mensagens.
- *
- * <p>Os textos das mensagens são copiados da especificação. Não altere sem
- * combinar com a turma: clientes de outras pessoas podem depender deles
- * (ex.: detectar "Sessão expirada ou encerrada.").
- */
 public final class Protocolo {
-
     private Protocolo() {
     }
 
     public static final int PORTA_PADRAO = 21500;
 
-    // ---------------------------------------------------------------- métodos
     public static final String LOGIN = "login";
     public static final String REGISTER = "register";
     public static final String LOGOUT = "logout";
@@ -24,7 +14,6 @@ public final class Protocolo {
     public static final String UPDATE_USER_PASSWORD = "updateuserpassword";
     public static final String DELETE_USER = "deleteuser";
 
-    // ----------------------------------------------------------- status codes
     public static final int OK = 200;
     public static final int CRIADO = 201;
     public static final int REQUISICAO_INVALIDA = 400;
@@ -33,7 +22,6 @@ public final class Protocolo {
     public static final int CONFLITO = 409;
     public static final int ERRO_INTERNO = 500;
 
-    /** Significado de cada status, conforme a aba "StatusCode" da planilha. */
     public static String significado(int status) {
         switch (status) {
             case OK: return "Sucesso";
@@ -47,7 +35,6 @@ public final class Protocolo {
         }
     }
 
-    // ------------------------------------------- mensagens da especificação
     public static final String MSG_LOGIN_OK = "Sucesso no Login";
     public static final String MSG_LOGIN_INVALIDO = "Usuario ou senhas inválidos";
     public static final String MSG_CADASTRO_OK = "Usuário criado com sucesso";
@@ -68,7 +55,6 @@ public final class Protocolo {
         return "O campo " + campo + " não está no padrão esperado.";
     }
 
-    // ---------------- mensagens para situações que a especificação não define
     public static final String MSG_SENHA_ATUAL_INCORRETA = "Senha atual incorreta";
     public static final String MSG_JSON_MALFORMADO = "JSON malformado";
     public static final String MSG_REQUISICAO_NAO_OBJETO = "A requisição deve ser um objeto JSON.";

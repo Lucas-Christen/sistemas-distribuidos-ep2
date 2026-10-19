@@ -16,16 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Usuários em memória, gravados em um arquivo JSON a cada alteração.
- *
- * <p>Todos os métodos são {@code synchronized}: a checagem "username já existe?"
- * e a inserção acontecem juntas, então dois cadastros simultâneos do mesmo
- * username nunca passam. A gravação usa arquivo temporário + {@code move}
- * atômico, para o arquivo nunca ficar pela metade.
- */
 public final class RepositorioUsuarios {
-
     private final Path arquivo;
     private final RegistroLog log;
     private final Map<String, Usuario> usuarios = new LinkedHashMap<>();
@@ -44,7 +35,6 @@ public final class RepositorioUsuarios {
         return username != null && usuarios.containsKey(username);
     }
 
-    /** Insere se o username ainda não existir. Retorna {@code false} se já existia. */
     public synchronized boolean inserir(Usuario usuario) {
         if (usuarios.containsKey(usuario.username())) {
             return false;
@@ -87,7 +77,6 @@ public final class RepositorioUsuarios {
         return arquivo;
     }
 
-    /** Aplica a mudança e grava; se a gravação falhar, desfaz a mudança na memória. */
     private void alterarESalvar(Runnable mudanca) {
         Map<String, Usuario> copia = new LinkedHashMap<>(usuarios);
         mudanca.run();
