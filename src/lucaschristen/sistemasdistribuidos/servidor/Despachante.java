@@ -16,7 +16,7 @@ public final class Despachante {
     private final Map<String, Function<Map<String, Object>, Resposta>> rotas = new HashMap<>();
     private final RegistroLog log;
 
-    public Despachante(ServicoContas servico, RegistroLog log) {
+    public Despachante(ServicoContas servico, ServicoEstacionamento estacionamento, RegistroLog log) {
         this.log = log;
         rotas.put(LOGIN, servico::login);
         rotas.put(REGISTER, servico::register);
@@ -25,6 +25,16 @@ public final class Despachante {
         rotas.put(UPDATE_USER_NAME, servico::updateUserName);
         rotas.put(UPDATE_USER_PASSWORD, servico::updateUserPassword);
         rotas.put(DELETE_USER, servico::deleteUser);
+        rotas.put(CREATE_VAGA, estacionamento::createVaga);
+        rotas.put(GET_VAGAS, estacionamento::getVagas);
+        rotas.put(UPDATE_VAGA, estacionamento::updateVaga);
+        rotas.put(DELETE_VAGA, estacionamento::deleteVaga);
+        rotas.put(CREATE_VEHICLE, estacionamento::createVehicle);
+        rotas.put(GET_VEHICLES, estacionamento::getVehicles);
+        rotas.put(GET_VEHICLE, estacionamento::getVehicle);
+        rotas.put(UPDATE_VEHICLE, estacionamento::updateVehicle);
+        rotas.put(DELETE_VEHICLE, estacionamento::deleteVehicle);
+        rotas.put(FIND_VEHICLE, estacionamento::findVehicle);
     }
 
     public Resposta processar(String textoRequisicao) {

@@ -1,5 +1,6 @@
 package lucaschristen.sistemasdistribuidos.cliente.ui;
 
+import static lucaschristen.sistemasdistribuidos.cliente.ui.Formularios.*;
 import static lucaschristen.sistemasdistribuidos.protocolo.Protocolo.*;
 
 import lucaschristen.sistemasdistribuidos.cliente.ApiContas;
@@ -47,7 +48,7 @@ import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultCaret;
 
-public final class JanelaCliente extends JFrame {
+public final class JanelaCliente extends JFrame implements Contexto {
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final Color VERDE = new Color(0, 120, 0);
@@ -77,10 +78,18 @@ public final class JanelaCliente extends JFrame {
     private final JLabel tituloConta = new JLabel();
     private final JLabel valorNome = new JLabel("—");
     private final JLabel valorUsername = new JLabel("—");
+    private final JLabel valorRole = new JLabel("—");
     private final JTextField novoNome = new JTextField(18);
     private final JPasswordField senhaAtual = new JPasswordField(18);
     private final JPasswordField senhaNova = new JPasswordField(18);
     private final JPasswordField senhaConfirma = new JPasswordField(18);
+
+    private final JTabbedPane abasConta = new JTabbedPane();
+    private JPanel abaMinhaConta;
+    private PainelVagas painelVagas;
+    private PainelVeiculos painelVeiculos;
+    private PainelBusca painelBusca;
+    private PainelAdmin painelAdmin;
 
     private final JTextArea trafego = new JTextArea(8, 60);
     private final JLabel status = new JLabel(" ");
@@ -112,13 +121,13 @@ public final class JanelaCliente extends JFrame {
 
         JSplitPane divisao = new JSplitPane(JSplitPane.VERTICAL_SPLIT, painelTelas, painelTrafego);
         divisao.setResizeWeight(0.7);
-        divisao.setDividerLocation(450);
+        divisao.setDividerLocation(560);
         status.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
         add(divisao, BorderLayout.CENTER);
         add(status, BorderLayout.SOUTH);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(920, 740);
+        setSize(1120, 860);
         setLocationRelativeTo(null);
         telas.show(painelTelas, TELA_ACESSO);
     }
@@ -160,8 +169,8 @@ public final class JanelaCliente extends JFrame {
 
         JButton recarregar = acao(new JButton("Recarregar (getuser)"));
         recarregar.addActionListener(e -> carregarDados());
-        JPanel dados = formulario("Meus dados", new String[] {"Nome:", "Username:"},
-                new JComponent[] {valorNome, valorUsername});
+        JPanel dados = formulario("Meus dados", new String[] {"Nome:", "Username:", "Perfil (role):"},
+                new JComponent[] {valorNome, valorUsername, valorRole});
         adicionarLinha(dados, recarregar);
 
         JButton salvarNome = acao(new JButton("Salvar nome"));
@@ -202,13 +211,56 @@ public final class JanelaCliente extends JFrame {
         c.gridx = 1;
         colunas.add(botoes, c);
 
-        JPanel conteudo = new JPanel(new BorderLayout(0, 8));
-        conteudo.add(tituloConta, BorderLayout.NORTH);
-        conteudo.add(colunas, BorderLayout.CENTER);
-        JPanel tela = new JPanel(new BorderLayout());
+        abaMinhaConta = noTopo(colunas);
+        painelVagas = new PainelVagas(this);
+        painelVeiculos = new PainelVeiculos(this);
+        painelBusca = new PainelBusca(this);
+        painelAdmin = new PainelAdmin(this);
+        configurarAbas();
+        abasConta.addChangeListener(e -> aoTrocarAba());
+
+        JPanel tela = new JPanel(new BorderLayout(0, 8));
         tela.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        tela.add(conteudo, BorderLayout.NORTH);
+        tela.add(tituloConta, BorderLayout.NORTH);
+        tela.add(abasConta, BorderLayout.CENTER);
         return tela;
+    }
+
+    private void configurarAbas() {
+        String role = api.getRole();
+        boolean admin = ROLE_ADMIN.equals(role);
+        boolean user = ROLE_USER.equals(role);
+        boolean desconhecido = !admin && !user;
+        java.awt.Component selecionada = abasConta.getSelectedComponent();
+        abasConta.removeAll();
+        abasConta.addTab("Minha conta", abaMinhaConta);
+        abasConta.addTab("Vagas", painelVagas);
+        if (user || desconhecido) {
+            abasConta.addTab("Meus veículos", painelVeiculos);
+        }
+        abasConta.addTab("Buscar veículo", painelBusca);
+        if (admin || desconhecido) {
+            abasConta.addTab("Administração", painelAdmin);
+        }
+        painelVagas.configurar(admin || desconhecido, user || desconhecido);
+        if (selecionada != null && abasConta.indexOfComponent(selecionada) >= 0) {
+            abasConta.setSelectedComponent(selecionada);
+        }
+    }
+
+    private void aoTrocarAba() {
+        if (!api.isLogado()) {
+            return;
+        }
+        java.awt.Component aba = abasConta.getSelectedComponent();
+        if (aba == painelVagas) {
+            painelVagas.carregar();
+            if (!api.isAdmin()) {
+                painelVagas.carregarPlacas();
+            }
+        } else if (aba == painelVeiculos) {
+            painelVeiculos.carregar();
+        }
     }
 
     private void entrar() {
@@ -273,6 +325,10 @@ public final class JanelaCliente extends JFrame {
                 String username = r.textoEmData("username");
                 valorNome.setText(nome == null ? "(não informado)" : nome);
                 valorUsername.setText(username == null ? api.getUsername() : username);
+                String role = r.textoEmData("role");
+                valorRole.setText(role == null ? "(não informado)" : role);
+                atualizarTitulo();
+                configurarAbas();
                 if (nome != null && novoNome.getText().isBlank()) {
                     novoNome.setText(nome);
                 }
@@ -364,6 +420,31 @@ public final class JanelaCliente extends JFrame {
         });
     }
 
+    @Override
+    public ApiContas api() {
+        return api;
+    }
+
+    @Override
+    public boolean validarAntes() {
+        return validarAntes.isSelected();
+    }
+
+    @Override
+    public void resultado(Resposta r) {
+        if (r.sucesso()) {
+            mostrar(r);
+        } else {
+            tratarErro(r);
+        }
+    }
+
+    @Override
+    public void contaPropriaExcluida(Resposta r) {
+        abrirAcesso();
+        mostrar(r);
+    }
+
     private void tratarErro(Resposta r) {
         if (r.statusCode() != NAO_AUTORIZADO) {
             mostrar(r);
@@ -388,16 +469,28 @@ public final class JanelaCliente extends JFrame {
                 + " Faça login novamente.", VERMELHO);
     }
 
-    private void abrirConta() {
-        tituloConta.setText("Logado como " + api.getUsername() + " em "
+    private void atualizarTitulo() {
+        String role = api.getRole();
+        tituloConta.setText("Logado como " + api.getUsername() + (role == null ? "" : " (" + role + ")") + " em "
                 + api.getTcp().getHost() + ":" + api.getTcp().getPorta());
+    }
+
+    private void abrirConta() {
+        atualizarTitulo();
         valorUsername.setText(api.getUsername());
+        valorRole.setText("…");
+        configurarAbas();
+        abasConta.setSelectedIndex(0);
         valorNome.setText("…");
         novoNome.setText("");
         telas.show(painelTelas, TELA_CONTA);
     }
 
     private void abrirAcesso() {
+        painelVagas.limpar();
+        painelVeiculos.limpar();
+        painelBusca.limpar();
+        painelAdmin.limpar();
         senhaAtual.setText("");
         senhaNova.setText("");
         senhaConfirma.setText("");
@@ -416,7 +509,8 @@ public final class JanelaCliente extends JFrame {
         }
     }
 
-    private void executar(Callable<Resposta> chamada, Consumer<Resposta> depois) {
+    @Override
+    public void executar(Callable<Resposta> chamada, Consumer<Resposta> depois) {
         executar(chamada, depois, falha -> mostrarStatus(falha.getMessage(), VERMELHO));
     }
 
@@ -458,7 +552,8 @@ public final class JanelaCliente extends JFrame {
         mostrarStatus(r.statusCode() + " · " + r.message(), r.sucesso() ? VERDE : VERMELHO);
     }
 
-    private void aviso(String texto) {
+    @Override
+    public void aviso(String texto) {
         mostrarStatus(texto, new Color(150, 90, 0));
     }
 
@@ -471,54 +566,10 @@ public final class JanelaCliente extends JFrame {
         trafego.append("[" + LocalTime.now().format(HORA) + "] " + linha + "\n");
     }
 
-    private JButton acao(JButton botao) {
+    @Override
+    public JButton acao(JButton botao) {
         acoes.add(botao);
         return botao;
-    }
-
-    private static JPanel formulario(String titulo, String[] rotulos, JComponent[] campos) {
-        JPanel painel = new JPanel(new GridBagLayout());
-        if (titulo != null) {
-            painel.setBorder(BorderFactory.createTitledBorder(titulo));
-        } else {
-            painel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        }
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(4, 6, 4, 6);
-        c.anchor = GridBagConstraints.WEST;
-        for (int i = 0; i < rotulos.length; i++) {
-            c.gridx = 0;
-            c.gridy = i;
-            c.weightx = 0;
-            c.fill = GridBagConstraints.NONE;
-            painel.add(new JLabel(rotulos[i]), c);
-            c.gridx = 1;
-            c.weightx = 1;
-            c.fill = GridBagConstraints.HORIZONTAL;
-            painel.add(campos[i], c);
-        }
-        return painel;
-    }
-
-    private static void adicionarLinha(JPanel formulario, JComponent componente) {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 1;
-        c.gridy = GridBagConstraints.RELATIVE;
-        c.insets = new Insets(4, 6, 4, 6);
-        c.anchor = GridBagConstraints.WEST;
-        formulario.add(componente, c);
-    }
-
-    private static JPanel noTopo(JComponent componente) {
-        JPanel painel = new JPanel(new BorderLayout());
-        painel.add(componente, BorderLayout.NORTH);
-        return painel;
-    }
-
-    private static JLabel dica(String... linhas) {
-        JLabel rotulo = new JLabel("<html><small>" + String.join("<br>", linhas) + "</small></html>");
-        rotulo.setForeground(Color.DARK_GRAY);
-        return rotulo;
     }
 
     public static void aplicarVisual() {

@@ -1,6 +1,8 @@
 package lucaschristen.sistemasdistribuidos.protocolo;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public record Resposta(int statusCode, String message, Object data) {
@@ -14,6 +16,10 @@ public record Resposta(int statusCode, String message, Object data) {
 
     public static Resposta criado(String mensagem) {
         return new Resposta(Protocolo.CRIADO, mensagem, null);
+    }
+
+    public static Resposta criado(String mensagem, Object dados) {
+        return new Resposta(Protocolo.CRIADO, mensagem, dados);
     }
 
     public static Resposta erro(int status, String mensagem) {
@@ -75,5 +81,18 @@ public record Resposta(int statusCode, String message, Object data) {
         }
         String texto = valor instanceof String s ? s : String.valueOf(valor);
         return texto.isBlank() ? null : texto.strip();
+    }
+
+    public List<Map<String, Object>> listaEmData() {
+        List<Map<String, Object>> lista = new ArrayList<>();
+        if (data instanceof List<?> itens) {
+            for (Object item : itens) {
+                Map<String, Object> objeto = Dados.comoObjeto(item);
+                if (objeto != null) {
+                    lista.add(objeto);
+                }
+            }
+        }
+        return lista;
     }
 }

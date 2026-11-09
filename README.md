@@ -1,6 +1,11 @@
-# LucasChristenSistemasDistribuidos
+# LucasChristenSistemasDistribuidos — EP2
 
-Cliente e servidor de **cadastro e sessão de usuários** sobre **sockets TCP com mensagens JSON**, seguindo o protocolo combinado na disciplina de Sistemas Distribuídos (UTFPR).
+Cliente e servidor de **estacionamento** sobre **sockets TCP com mensagens JSON**, seguindo o protocolo combinado na disciplina de Sistemas Distribuídos (UTFPR).
+
+Esta é a **Parte 2**. Ela parte da [EP1](https://github.com/Lucas-Christen/sistemas-distribuidos) (contas e sessão, que continua funcionando igual) e acrescenta:
+- **perfis** `admin` e `user`, com uma conta admin criada na inicialização;
+- **CRUD de vagas** (admin) e estacionar/liberar (user);
+- **CRUD de veículos** (cada user só enxerga os próprios) e **busca do veículo estacionado** pela placa.
 
 - Java **17+**, sem nenhuma dependência externa (nem Maven): compila com `javac` ou no Eclipse.
 - Cliente e servidor com interface gráfica (Swing). O servidor também roda só no terminal.
@@ -17,8 +22,10 @@ java -jar dist/servidor.jar              # janela do servidor (porta padrão 215
 java -jar dist/servidor.jar --console    # servidor no terminal (pergunta a porta)
 java -jar dist/servidor.jar --console 21500 --dados minha-pasta
 java -jar dist/cliente.jar               # janela do cliente
-./testar.sh                              # Windows: testar.bat — roda os 182 testes
+./testar.sh                              # Windows: testar.bat (ou ./testar.sh no Git Bash): roda os 370 testes
 ```
+
+**Conta admin inicial:** `admin` / `Admin123!` (name `admin`, role `admin`). Se ela não existir quando o servidor sobe, é criada.
 
 ### Pelo Eclipse
 `File → Import → Existing Projects into Workspace` e escolha esta pasta. Depois, `Run As → Java Application` em:
@@ -28,10 +35,8 @@ java -jar dist/cliente.jar               # janela do cliente
 
 ### Testar na mão com netcat
 ```bash
-echo '{"method":"login","data":{"username":"joao.s","password":"Senha123!"}}' | nc localhost 21500
+echo '{"method":"login","data":{"username":"admin","password":"Admin123!"}}' | nc localhost 21500
 ```
-
-Na janela do servidor aparecem os IPs da máquina (ex.: `192.168.0.10:21500`) para os colegas se conectarem pela rede.
 
 ---
 
@@ -40,50 +45,92 @@ Na janela do servidor aparecem os IPs da máquina (ex.: `192.168.0.10:21500`) pa
 Requisição: `{"method": "<minúsculo>", "data": {...}}` · Resposta: `{"statusCode": int, "message": String, "data": T|null}`.
 Uma conexão TCP por requisição; o servidor responde uma linha JSON terminada em `\n` e encerra a conexão.
 
+### Contas (EP1 + regras de admin)
 | method | data enviado | sucesso |
 | :--- | :--- | :--- |
 | `login` | `username`, `password` | `200 "Sucesso no Login"`, `data: {token}` |
-| `register` | `name`, `username`, `password` | `201 "Usuário criado com sucesso"` |
+| `register` | `name`, `username`, `password`, `role?`, `token?` | `201 "Usuário criado com sucesso"` |
 | `logout` | `token` | `200 "Usuário deslogado com sucesso"` |
-| `getuser` | `token`, `username` | `200 "Usuário encontrado com sucesso"`, `data: {name, username}` |
+| `getuser` | `token`, `username` | `200 "Usuário encontrado com sucesso"`, `data: {name, username, role}` |
 | `updateusername` | `token`, `username`, `name` | `200 "Nome do usuário atualizado com sucesso"` |
 | `updateuserpassword` | `token`, `username`, `oldPassword`, `newPassword` | `200 "Senha atualizada com sucesso"` |
 | `deleteuser` | `token`, `username` | `200 "Usuário deletado com sucesso"` |
 
-Erros da especificação: `401 "Usuario ou senhas inválidos"`, `409 "O username já está em uso."`, `400 "O campo {campo} não está no padrão esperado."`, `400 "Token de autenticação não fornecido."`, `401 "Sessão expirada ou encerrada."`, `400 "Nome do usuário fora do padrão"`, `400 "Senha fora do padrão"`, `401 "Operação não autorizada"`, `404 "Usuário não encontrado"`.
+- `register` sem `role` e sem `token` cria `user` (EP1). Com os dois, o token precisa ser de admin e a conta é criada com a role pedida.
+- `getuser`: o admin recebe os dados do `username` pedido; o user recebe sempre os próprios.
+- `updateusername` / `deleteuser`: o admin age sobre qualquer conta; o user só sobre a própria. O `username` nunca é renomeado.
+- `deleteuser` recusa (409) se a conta tiver veículo estacionado; se passar, apaga os veículos dela em cascata e derruba as sessões dela.
+
+### Vagas
+| method | perfil | data enviado | sucesso |
+| :--- | :--- | :--- | :--- |
+| `createvaga` | admin | `token`, `spotName`, `floor`, `type` | `201 "Vaga criada com sucesso"` (status `disponivel` posto pelo servidor) |
+| `getvagas` | ambos | `token` | `200 "Vagas obtidas com sucesso"`, `data: [{floor, spotName, status, licensePlate, type}]` |
+| `updatevaga` | ambos | `token`, `spotName`, `newSpotName?`, `floor?`, `status?`, `licensePlate?` | `200 "Vaga atualizada com sucesso"` |
+| `deletevaga` | admin | `token`, `spotName` | `200 "Vaga removida com sucesso"` |
+
+`updatevaga`:
+- **admin** altera `newSpotName`, `floor` e `status` (`disponivel` / `fora_de_servico`). Nome e andar só mudam com a vaga `disponivel` ou `fora_de_servico`. `fora_de_servico` só a partir de `disponivel`.
+- **user** estaciona (`status: "ocupada"` + `licensePlate` de um veículo seu, com o mesmo `type` da vaga) e libera (`status: "disponivel"` ou `licensePlate: null`).
+- Só quem ocupou a vaga, ou um admin, pode liberá-la. Campos omitidos preservam o valor atual.
+
+### Veículos
+| method | perfil | data enviado | sucesso |
+| :--- | :--- | :--- | :--- |
+| `createvehicle` | user | `token`, `brand`, `model`, `type`, `licensePlate` | `201 "Veículo criado com sucesso"` |
+| `getvehicles` | user | `token` | `200 "Veículos obtidos com sucesso"`, `data: [{brand, model, type, licensePlate}]` (ou `[]`) |
+| `getvehicle` | ambos | `token`, `licensePlate` | `200 "Veículo encontrado com sucesso"`, `data: {brand, model, type, licensePlate}` |
+| `updatevehicle` | user | `token`, `licensePlate`, `brand?`, `model?`, `type?` | `200 "Veículo atualizado com sucesso"` |
+| `deletevehicle` | ambos | `token`, `licensePlate` | `200 "Veículo removido com sucesso"` |
+| `findvehicle` | ambos | `token`, `licensePlate` | `200 "Veiculo localizado com sucesso"`, `data: {floor, spotName, status}` |
+
+- O dono (`ownerUsername`) vem do token, é gravado junto com o veículo e nunca aparece na resposta. `username`/`ownerUsername` no payload são ignorados.
+- O user só enxerga os próprios veículos: placa de outra conta e placa inexistente dão **a mesma** resposta, `404 "Veículo não encontrado."`. O admin enxerga qualquer veículo.
+- Placa: 7 letras/números, única no sistema e guardada em maiúsculas. `brand`: 1 a 20 caracteres. `model`: até 20 caracteres ou `null`. `type`: `eletrico` / `combustao`.
+- Mudar `type`, ou excluir um veículo que está numa vaga: `409 "Veículo associado a uma vaga. Libere a vaga antes desta operação."`.
+
+### Erros comuns
+| Situação | Resposta |
+| :--- | :--- |
+| Token ausente | `400 "Token de autenticação não fornecido."` |
+| Token inválido, expirado ou encerrado | `401 "Sessão expirada ou encerrada."` (o cliente encerra a sessão) |
+| Token válido sem permissão | `401` com a mensagem da permissão, por ex. `"Operação permitida apenas para administradores."` / `"Operação permitida apenas para usuários comuns."` (o cliente mantém a sessão) |
+| Campo ausente ou inválido nos métodos novos | `400 "Campos obrigatórios ausentes ou inválidos."` |
+| Placa ou nome de vaga repetido | `409 "Placa já cadastrada."` / `409 "Já existe uma vaga com este nome."` |
+| Falha interna (inclusive ao gravar o arquivo) | `500 "Erro interno no servidor."` (nada é confirmado nem gravado pela metade) |
 
 Todas as mensagens estão centralizadas em `protocolo/Protocolo.java`.
 
 ### Decisões onde a especificação não define
 | Situação | Resposta escolhida | Por quê |
 | :--- | :--- | :--- |
-| Token em formato não-UUID (`"abc"`, `123`) | `401 "Sessão expirada ou encerrada."` | A especificação diz "sempre que um token não autorizado chegar" |
-| Token vazio (`""`) | `400 "Token de autenticação não fornecido."` | Vazio = não fornecido |
-| `username` de outra pessoa (getuser/update/delete) | `401 "Operação não autorizada"` | `username` é o ID da operação (negrito na planilha); admin ainda não especificado |
-| `username` ausente nessas operações | Vale o dono do token | Tolerância com clientes que não mandam |
-| Senha atual errada | `401 "Senha atual incorreta"` | Mesma semântica do login (credencial errada) |
-| Nova senha igual à atual | `400 "Senha fora do padrão"` | Trocar pela mesma senha não é uma troca; usa a mensagem padrão de senha do documento |
-| `method` desconhecido | `400 "Método desconhecido: X"` | Requisição inválida |
-| `method` com maiúscula (`"Login"`) | Aceito | O cliente deveria mandar minúsculo, mas aceitar não custa nada |
-| `name` com acento (`João`) | Aceito | Só o `username` proíbe acento |
+| `register` com `role` e sem `token` | `400 "Token de autenticação não fornecido."` | Combinação incompleta; falta justamente o token |
+| `register` com `token` e sem `role` (ou role inválida) | `400 "O campo role não está no padrão esperado."` | Mesmo formato dos outros erros de campo do `register` |
+| Admin estacionando (`licensePlate` ou `status: "ocupada"`) | `401 "Administradores não podem estacionar veículos."` | `licensePlate` é campo do user na especificação |
+| `findvehicle` de veículo cadastrado mas fora de vaga | `404 "Veículo não está estacionado em nenhuma vaga."` | Só depois de confirmar que a placa é visível para quem pergunta |
+| `updatevaga`/`updatevehicle` sem nenhum campo para mudar | `400 "Campos obrigatórios ausentes ou inválidos."` | Nada para atualizar |
+| Nome de vaga com outra caixa (`a1` × `A1`) | Tratado como o mesmo nome | Evita duas vagas "iguais" |
+| Placa em minúsculas | Aceita e guardada em maiúsculas | `abc1234` e `ABC1234` são a mesma placa |
+| User libera vaga `fora_de_servico` | `401 "Operação permitida apenas para administradores."` | Só o admin tira a vaga de fora de serviço |
+| Admin exclui a própria conta | Permitido; a conta `admin` volta a ser criada no próximo início | A especificação não proíbe |
+
+As decisões da EP1 continuam valendo (token não-UUID → 401, token vazio → 400, `method` com maiúscula aceito, etc.).
 
 ---
 
-## Como ele conversa com implementações diferentes
+## Cliente
 
-**O que envia segue a especificação à risca:** chaves e mensagens exatas, `data:null` sempre presente, JSON compacto de uma linha terminado em `\n`, UTF-8, token UUID.
+Depois do login, o cliente pergunta ao servidor (`getuser`) qual é o perfil da sessão e mostra as abas que fazem sentido:
 
-**O que recebe é tolerante.** A leitura não depende do `\n`: ela acompanha as chaves do JSON e para quando o objeto fecha (`protocolo/Transporte.java`). Assim, funciona quando o outro lado:
-- manda com `\n`, `\r\n`, sem `\n` (e espera), ou sem `\n` e fecha a conexão;
-- manda JSON formatado em várias linhas;
-- manda uma linha malformada: responde 400 em ~300 ms, em vez de esperar o tempo limite;
-- usa **Windows-1252** em vez de UTF-8 (Java 17 no Windows faz isso por padrão): o servidor detecta e responde no mesmo charset;
-- manda BOM, chaves com outra caixa (`Username`), `data` como texto com JSON dentro;
-- (cliente) responde `statusCode` como `200`, `200.0` ou `"200"`, sem `message`, ou sem `data`.
+| Aba | user | admin |
+| :--- | :---: | :---: |
+| Minha conta (dados, nome, senha, logout, excluir conta) | ✔ | ✔ |
+| Vagas (lista; user estaciona/libera; admin cria/edita/exclui/libera) | ✔ | ✔ |
+| Meus veículos (cadastrar, editar, excluir) | ✔ | |
+| Buscar veículo (`findvehicle`, `getvehicle`, `deletevehicle`) | ✔ | ✔ |
+| Administração (cadastrar com role, consultar/renomear/excluir outra conta) | | ✔ |
 
-**Sessão expirada no cliente:** num 401, o cliente pergunta ao servidor (`getuser`) se o token ainda vale antes de deslogar. Assim ele não depende do texto da mensagem: "Senha atual incorreta" (401) não derruba o usuário.
-
-**Painel de tráfego:** o cliente mostra cada JSON enviado/recebido (senhas mascaradas). É útil para descobrir o que o servidor de um colega espera.
+Esconder abas é só conveniência: quem decide é o servidor. Num 401, o cliente pergunta ao servidor se o token ainda vale antes de deslogar. Assim, uma recusa por falta de permissão aparece na barra de status e a sessão continua aberta. Os dados de outra conta consultada pelo admin ficam separados da sessão dele.
 
 ---
 
@@ -94,29 +141,32 @@ src/lucaschristen/sistemasdistribuidos/
 ├── protocolo/   Json (parser próprio), Transporte (enquadramento TCP), Protocolo (constantes),
 │                Resposta, Validacao, Dados (leitura tolerante), LogSeguro (mascara senhas)
 ├── servidor/    ServidorApp (main), ServidorTcp (accept + pool), Atendimento (1 conexão),
-│                Despachante (method → operação), ServicoContas (regras), RepositorioUsuarios,
-│                Sessoes, Senhas (PBKDF2), RegistroLog, ui/JanelaServidor
-└── cliente/     ClienteApp (main), ClienteTcp (1 conexão por requisição), ApiContas (sessão),
-                 ui/JanelaCliente
-teste/lucaschristen/sistemasdistribuidos/   TodosOsTestes, TesteProtocolo, TesteServidor, Verifica
+│                Despachante (method → operação), ServicoContas, ServicoEstacionamento, Autenticador,
+│                Banco (usuários + vagas + veículos), Usuario, Vaga, Veiculo, Sessoes, Senhas (PBKDF2),
+│                RegistroLog, ui/JanelaServidor
+└── cliente/     ClienteApp (main), ClienteTcp (1 conexão por requisição), ApiContas (sessão + chamadas),
+                 ui/JanelaCliente, ui/PainelVagas, ui/PainelVeiculos, ui/PainelBusca, ui/PainelAdmin
+teste/lucaschristen/sistemasdistribuidos/   TodosOsTestes, TesteProtocolo, TesteServidor (EP1), TesteEp2, Verifica
 ```
 
 ### Servidor
-- **Thread de accept + pool com limite** (4 a 64 threads). Se lotar, responde 500 na hora.
-- **Tempo limite de 30 s por conexão:** uma conexão aberta sem enviar nada não prende uma thread para sempre.
-- **Senhas com hash PBKDF2-HMAC-SHA256 + sal** (só JDK). O arquivo `dados/usuarios.json` nunca guarda a senha.
-- **Usuários em memória e gravados a cada alteração** (arquivo temporário + move atômico). Operações `synchronized`, então dois cadastros simultâneos do mesmo username não passam.
-- **Sessões (token → username) só em memória:** reiniciar o servidor invalida os tokens. Excluir a conta derruba todas as sessões do usuário.
-- **Log** no formato da especificação (`[SERVIDOR] Requisição recebida/Resposta enviada`, `[CLIENTE] Login/Logout`), com horário e senhas mascaradas.
+- **Banco único** (`dados/banco.json`) com usuários, vagas e veículos. Cada operação roda numa transação: trabalha sobre uma cópia, grava o arquivo (temporário + move atômico) e só então passa a valer. Se a gravação falhar, a resposta é 500 e nada muda, nem em memória.
+- **Transações serializadas:** a verificação de dono, de vínculo com vaga e a gravação acontecem juntas. Duas pessoas cadastrando a mesma placa, ou o mesmo veículo em duas vagas ao mesmo tempo, não passam.
+- **Perfil sempre lido do banco** a cada requisição (o token só diz quem é a pessoa).
+- **Migração da EP1:** se `banco.json` não existe mas há um `usuarios.json` da EP1 na mesma pasta, os usuários são importados como `user`.
+- Continua da EP1: pool de threads com limite, tempo limite de 30 s por conexão, senhas com PBKDF2 + sal, sessões só em memória, log no formato da especificação.
+- A janela do servidor ganhou as abas **Vagas** e **Veículos** e a coluna **Perfil** na lista de usuários.
 
 ---
 
 ## Testes
 
-`./testar.sh` roda **182 verificações** sem JUnit:
-- JSON (escapes, unicode, números, entradas inválidas) e regras de validação nos limites;
-- todos os cenários da especificação contra o servidor real numa porta livre;
-- robustez de rede (sem `\n`, multilinha, em pedaços, Windows-1252, BOM, conexão ociosa, JSON pela metade, mensagem > 64 KB);
-- concorrência (40 cadastros simultâneos);
-- persistência (reinício do servidor, senha não aparece no arquivo);
-- cliente contra servidores "diferentes" (respostas formatadas, sem `\n`, `statusCode` como texto, servidor que fecha sem responder).
+`./testar.sh` roda **370 verificações** sem JUnit: as 182 da EP1 (uma ajustada para a nova regra do `getuser`) e as novas da EP2:
+- conta admin inicial; `register` com cada combinação de role/token;
+- admin consultando, renomeando e excluindo outras contas, com a sessão dele intacta;
+- vagas: criação, nome duplicado, renomear e depois achar o veículo pelo nome novo, fora de serviço, exclusão;
+- veículos com duas contas user: listagem e consulta não mostram veículos de outra conta, e edição/exclusão por outro user não os alteram;
+- admin consultando e excluindo veículos de terceiros, e sendo recusado nos endpoints exclusivos de user;
+- 400 × 401 de sessão × 401 de permissão, lista vazia, campos omitidos/`null`, placa duplicada, conflitos com vaga;
+- concorrência (mesma placa e mesmo veículo em várias vagas ao mesmo tempo);
+- persistência após reinício, falha de gravação (500 sem efeito) e importação do arquivo da EP1.

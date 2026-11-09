@@ -37,7 +37,7 @@ final class TesteServidor {
 
     static void executar(Verifica v) throws Exception {
         Path pasta = Files.createTempDirectory("lucaschristen-sd-teste");
-        Path arquivo = pasta.resolve("usuarios.json");
+        Path arquivo = pasta.resolve("banco.json");
         ServidorContas servidor = new ServidorContas(0, arquivo, new RegistroLog(false), TEMPO_CURTO_MS);
         servidor.iniciar();
         porta = servidor.getPorta();
@@ -93,6 +93,7 @@ final class TesteServidor {
                 "{\"token\":\"" + token + "\",\"username\":\"joao.s\"}", 200, "Usuário encontrado com sucesso");
         v.igual("data.name", "Joao Silva", dataCampo(dados, "name"));
         v.igual("data.username", "joao.s", dataCampo(dados, "username"));
+        v.igual("data.role (EP2)", "user", dataCampo(dados, "role"));
         esperar(v, "token UUID desconhecido", "getuser",
                 "{\"token\":\"" + UUID.randomUUID() + "\",\"username\":\"joao.s\"}", 401, "Sessão expirada ou encerrada.");
         esperar(v, "token que nem é UUID", "getuser", "{\"token\":\"abc\",\"username\":\"joao.s\"}",
@@ -102,8 +103,9 @@ final class TesteServidor {
         esperar(v, "token vazio", "getuser", "{\"token\":\"\",\"username\":\"joao.s\"}",
                 400, "Token de autenticação não fornecido.");
         esperar(v, "sem token", "getuser", "{\"username\":\"joao.s\"}", 400, "Token de autenticação não fornecido.");
-        esperar(v, "username de outra pessoa", "getuser", "{\"token\":\"" + token + "\",\"username\":\"outro\"}",
-                401, "Operação não autorizada");
+        Map<String, Object> outra = esperar(v, "username de outra pessoa (user comum recebe os próprios dados)", "getuser",
+                "{\"token\":\"" + token + "\",\"username\":\"outro\"}", 200, "Usuário encontrado com sucesso");
+        v.igual("… e os dados são do dono do token", "joao.s", dataCampo(outra, "username"));
         esperar(v, "sem username (usa o dono do token)", "getuser", "{\"token\":\"" + token + "\"}",
                 200, "Usuário encontrado com sucesso");
 

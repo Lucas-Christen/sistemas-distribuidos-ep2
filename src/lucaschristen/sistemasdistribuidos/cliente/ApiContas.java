@@ -10,6 +10,7 @@ public final class ApiContas {
     private final ClienteTcp tcp;
     private volatile String token;
     private volatile String username;
+    private volatile String role;
 
     public ApiContas(ClienteTcp tcp) {
         this.tcp = tcp;
@@ -31,6 +32,14 @@ public final class ApiContas {
         return token;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public boolean isAdmin() {
+        return ROLE_ADMIN.equals(role);
+    }
+
     public Resposta login(String username, String senha) throws FalhaComunicacao {
         Resposta r = tcp.enviar(LOGIN, mapa("username", username, "password", senha));
         if (r.statusCode() == OK) {
@@ -40,6 +49,7 @@ public final class ApiContas {
             }
             this.token = recebido;
             this.username = username;
+            this.role = null;
         }
         return r;
     }
@@ -48,12 +58,33 @@ public final class ApiContas {
         return tcp.enviar(REGISTER, mapa("name", nome, "username", username, "password", senha));
     }
 
+    public Resposta cadastrarComPerfil(String nome, String username, String senha, String perfil)
+            throws FalhaComunicacao {
+        return tcp.enviar(REGISTER, mapa("name", nome, "username", username, "password", senha,
+                "role", perfil, "token", token));
+    }
+
     public Resposta consultar() throws FalhaComunicacao {
-        return tcp.enviar(GET_USER, mapa("token", token, "username", username));
+        Resposta r = tcp.enviar(GET_USER, mapa("token", token, "username", username));
+        if (r.statusCode() == OK) {
+            String recebido = r.textoEmData("role");
+            if (recebido != null) {
+                role = recebido;
+            }
+        }
+        return r;
+    }
+
+    public Resposta consultarUsuario(String outro) throws FalhaComunicacao {
+        return tcp.enviar(GET_USER, mapa("token", token, "username", outro));
     }
 
     public Resposta atualizarNome(String novoNome) throws FalhaComunicacao {
-        return tcp.enviar(UPDATE_USER_NAME, mapa("token", token, "username", username, "name", novoNome));
+        return atualizarNomeDe(username, novoNome);
+    }
+
+    public Resposta atualizarNomeDe(String alvo, String novoNome) throws FalhaComunicacao {
+        return tcp.enviar(UPDATE_USER_NAME, mapa("token", token, "username", alvo, "name", novoNome));
     }
 
     public Resposta atualizarSenha(String senhaAtual, String novaSenha) throws FalhaComunicacao {
@@ -62,8 +93,13 @@ public final class ApiContas {
     }
 
     public Resposta excluirConta() throws FalhaComunicacao {
-        Resposta r = tcp.enviar(DELETE_USER, mapa("token", token, "username", username));
-        if (r.statusCode() == OK) {
+        return excluirUsuario(username);
+    }
+
+    public Resposta excluirUsuario(String alvo) throws FalhaComunicacao {
+        boolean propria = alvo != null && alvo.equals(username);
+        Resposta r = tcp.enviar(DELETE_USER, mapa("token", token, "username", alvo));
+        if (r.statusCode() == OK && propria) {
             encerrarSessaoLocal();
         }
         return r;
@@ -77,9 +113,54 @@ public final class ApiContas {
         }
     }
 
+    public Resposta criarVaga(String spotName, int floor, String type) throws FalhaComunicacao {
+        return tcp.enviar(CREATE_VAGA, mapa("token", token, "spotName", spotName, "floor", floor, "type", type));
+    }
+
+    public Resposta listarVagas() throws FalhaComunicacao {
+        return tcp.enviar(GET_VAGAS, mapa("token", token));
+    }
+
+    public Resposta atualizarVaga(String spotName, Map<String, Object> alteracoes) throws FalhaComunicacao {
+        Map<String, Object> dados = mapa("token", token, "spotName", spotName);
+        dados.putAll(alteracoes);
+        return tcp.enviar(UPDATE_VAGA, dados);
+    }
+
+    public Resposta excluirVaga(String spotName) throws FalhaComunicacao {
+        return tcp.enviar(DELETE_VAGA, mapa("token", token, "spotName", spotName));
+    }
+
+    public Resposta criarVeiculo(String placa, String marca, String modelo, String tipo) throws FalhaComunicacao {
+        return tcp.enviar(CREATE_VEHICLE, mapa("token", token, "brand", marca, "model", modelo, "type", tipo,
+                "licensePlate", placa));
+    }
+
+    public Resposta listarVeiculos() throws FalhaComunicacao {
+        return tcp.enviar(GET_VEHICLES, mapa("token", token));
+    }
+
+    public Resposta consultarVeiculo(String placa) throws FalhaComunicacao {
+        return tcp.enviar(GET_VEHICLE, mapa("token", token, "licensePlate", placa));
+    }
+
+    public Resposta atualizarVeiculo(String placa, Map<String, Object> alteracoes) throws FalhaComunicacao {
+        Map<String, Object> dados = mapa("token", token, "licensePlate", placa);
+        dados.putAll(alteracoes);
+        return tcp.enviar(UPDATE_VEHICLE, dados);
+    }
+
+    public Resposta excluirVeiculo(String placa) throws FalhaComunicacao {
+        return tcp.enviar(DELETE_VEHICLE, mapa("token", token, "licensePlate", placa));
+    }
+
+    public Resposta localizarVeiculo(String placa) throws FalhaComunicacao {
+        return tcp.enviar(FIND_VEHICLE, mapa("token", token, "licensePlate", placa));
+    }
+
     public boolean sessaoContinuaValida() {
         try {
-            return consultar().statusCode() != NAO_AUTORIZADO;
+            return tcp.enviar(GET_USER, mapa("token", token, "username", username)).statusCode() != NAO_AUTORIZADO;
         } catch (FalhaComunicacao e) {
             return true;
         }
@@ -88,6 +169,7 @@ public final class ApiContas {
     public void encerrarSessaoLocal() {
         token = null;
         username = null;
+        role = null;
     }
 
     private static Map<String, Object> mapa(Object... chavesEValores) {

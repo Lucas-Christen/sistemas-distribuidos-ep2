@@ -4,6 +4,8 @@ import lucaschristen.sistemasdistribuidos.servidor.RegistroLog;
 import lucaschristen.sistemasdistribuidos.servidor.ServidorContas;
 import lucaschristen.sistemasdistribuidos.servidor.Sessoes;
 import lucaschristen.sistemasdistribuidos.servidor.Usuario;
+import lucaschristen.sistemasdistribuidos.servidor.Vaga;
+import lucaschristen.sistemasdistribuidos.servidor.Veiculo;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -46,7 +48,7 @@ public final class JanelaServidor extends JFrame {
     private static final DateTimeFormatter HORA =
             DateTimeFormatter.ofPattern("dd/MM HH:mm:ss").withZone(ZoneId.systemDefault());
 
-    private final transient Path arquivoUsuarios;
+    private final transient Path arquivoBanco;
     private final transient RegistroLog log = new RegistroLog();
     private transient ServidorContas servidor;
 
@@ -56,12 +58,16 @@ public final class JanelaServidor extends JFrame {
     private final JLabel status = new JLabel();
     private final JLabel enderecos = new JLabel();
     private final JTextArea areaLog = new JTextArea();
-    private final DefaultTableModel modeloUsuarios = tabelaSomenteLeitura("Nome (name)", "Username");
+    private final DefaultTableModel modeloUsuarios = tabelaSomenteLeitura("Nome (name)", "Username", "Perfil (role)");
+    private final DefaultTableModel modeloVagas =
+            tabelaSomenteLeitura("Andar", "Vaga", "Tipo", "Status", "Placa", "Ocupada por");
+    private final DefaultTableModel modeloVeiculos =
+            tabelaSomenteLeitura("Placa", "Marca", "Modelo", "Tipo", "Dono");
     private final DefaultTableModel modeloSessoes = tabelaSomenteLeitura("Username", "Token", "Desde");
 
-    public JanelaServidor(int portaInicial, Path arquivoUsuarios) {
+    public JanelaServidor(int portaInicial, Path arquivoBanco) {
         super("LucasChristenSistemasDistribuidos · Servidor");
-        this.arquivoUsuarios = arquivoUsuarios;
+        this.arquivoBanco = arquivoBanco;
 
         campoPorta = new JSpinner(new SpinnerNumberModel(portaInicial, 1, 65535, 1));
         campoPorta.setEditor(new JSpinner.NumberEditor(campoPorta, "#"));
@@ -93,6 +99,8 @@ public final class JanelaServidor extends JFrame {
         abas.addTab("Log", painelLog);
         abas.addTab("Usuários", new JScrollPane(new JTable(modeloUsuarios)));
         abas.addTab("Sessões ativas", new JScrollPane(new JTable(modeloSessoes)));
+        abas.addTab("Vagas", new JScrollPane(new JTable(modeloVagas)));
+        abas.addTab("Veículos", new JScrollPane(new JTable(modeloVeiculos)));
 
         add(topo, BorderLayout.NORTH);
         add(abas, BorderLayout.CENTER);
@@ -120,7 +128,7 @@ public final class JanelaServidor extends JFrame {
     private void iniciar() {
         int porta = (Integer) campoPorta.getValue();
         try {
-            servidor = new ServidorContas(porta, arquivoUsuarios, log);
+            servidor = new ServidorContas(porta, arquivoBanco, log);
             servidor.iniciar();
         } catch (IOException e) {
             servidor = null;
@@ -152,21 +160,31 @@ public final class JanelaServidor extends JFrame {
         } else {
             status.setText("● Parado");
             status.setForeground(Color.GRAY);
-            enderecos.setText("Usuários gravados em " + arquivoUsuarios.toAbsolutePath());
+            enderecos.setText("Dados gravados em " + arquivoBanco.toAbsolutePath());
         }
     }
 
     private void atualizarTabelas() {
         modeloUsuarios.setRowCount(0);
         modeloSessoes.setRowCount(0);
+        modeloVagas.setRowCount(0);
+        modeloVeiculos.setRowCount(0);
         if (servidor == null) {
             return;
         }
         for (Usuario u : servidor.listarUsuarios()) {
-            modeloUsuarios.addRow(new Object[] {u.name(), u.username()});
+            modeloUsuarios.addRow(new Object[] {u.name(), u.username(), u.role()});
         }
         for (Sessoes.Sessao s : servidor.listarSessoes()) {
             modeloSessoes.addRow(new Object[] {s.username(), s.token(), HORA.format(s.inicio())});
+        }
+        for (Vaga v : servidor.listarVagas()) {
+            modeloVagas.addRow(new Object[] {v.floor(), v.spotName(), v.type(), v.status(),
+                    v.licensePlate() == null ? "" : v.licensePlate(), v.ocupadaPor() == null ? "" : v.ocupadaPor()});
+        }
+        for (Veiculo v : servidor.listarVeiculos()) {
+            modeloVeiculos.addRow(new Object[] {v.licensePlate(), v.brand(), v.model() == null ? "" : v.model(),
+                    v.type(), v.ownerUsername()});
         }
     }
 

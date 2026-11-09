@@ -8,6 +8,7 @@ public final class TodosOsTestes {
         Verifica v = new Verifica();
         TesteProtocolo.executar(v);
         TesteServidor.executar(v);
+        TesteEp2.executar(v);
         System.exit(v.resumo() ? 0 : 1);
     }
 }

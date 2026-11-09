@@ -24,7 +24,7 @@ public final class ServidorApp {
                 default -> porta = lerPorta(args[i]);
             }
         }
-        Path arquivo = pastaDados.resolve("usuarios.json");
+        Path arquivo = pastaDados.resolve("banco.json");
 
         if (!console) {
             int portaInicial = porta == null ? Protocolo.PORTA_PADRAO : porta;

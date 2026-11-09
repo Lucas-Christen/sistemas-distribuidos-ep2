@@ -5,19 +5,21 @@ import java.nio.file.Path;
 import java.util.List;
 
 public final class ServidorContas {
-    private final RepositorioUsuarios repositorio;
+    private final Banco banco;
     private final Sessoes sessoes;
     private final ServidorTcp tcp;
 
-    public ServidorContas(int porta, Path arquivoUsuarios, RegistroLog log) {
-        this(porta, arquivoUsuarios, log, ServidorTcp.TEMPO_LIMITE_PADRAO_MS);
+    public ServidorContas(int porta, Path arquivoBanco, RegistroLog log) {
+        this(porta, arquivoBanco, log, ServidorTcp.TEMPO_LIMITE_PADRAO_MS);
     }
 
-    public ServidorContas(int porta, Path arquivoUsuarios, RegistroLog log, int tempoLimiteMs) {
-        this.repositorio = new RepositorioUsuarios(arquivoUsuarios, log);
+    public ServidorContas(int porta, Path arquivoBanco, RegistroLog log, int tempoLimiteMs) {
+        this.banco = new Banco(arquivoBanco, log);
         this.sessoes = new Sessoes();
-        ServicoContas servico = new ServicoContas(repositorio, sessoes, log);
-        this.tcp = new ServidorTcp(porta, new Despachante(servico, log), log, tempoLimiteMs);
+        ServicoContas contas = new ServicoContas(banco, sessoes, log);
+        contas.garantirAdminInicial();
+        ServicoEstacionamento estacionamento = new ServicoEstacionamento(banco, sessoes, log);
+        this.tcp = new ServidorTcp(porta, new Despachante(contas, estacionamento, log), log, tempoLimiteMs);
     }
 
     public void iniciar() throws IOException {
@@ -37,14 +39,22 @@ public final class ServidorContas {
     }
 
     public List<Usuario> listarUsuarios() {
-        return repositorio.listar();
+        return banco.ler(Banco.Estado::usuarios);
+    }
+
+    public List<Vaga> listarVagas() {
+        return banco.ler(Banco.Estado::vagas);
+    }
+
+    public List<Veiculo> listarVeiculos() {
+        return banco.ler(Banco.Estado::veiculos);
     }
 
     public List<Sessoes.Sessao> listarSessoes() {
         return sessoes.listar();
     }
 
-    public Path getArquivoUsuarios() {
-        return repositorio.getArquivo();
+    public Path getArquivoBanco() {
+        return banco.getArquivo();
     }
 }

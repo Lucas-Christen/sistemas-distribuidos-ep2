@@ -1,5 +1,7 @@
 package lucaschristen.sistemasdistribuidos.protocolo;
 
+import java.util.Locale;
+
 public final class Validacao {
     private Validacao() {
     }
@@ -76,5 +78,79 @@ public final class Validacao {
             }
         }
         return maiuscula && minuscula && numero && simbolo;
+    }
+
+    public static final int PLACA_TAMANHO = 7;
+    public static final int VAGA_MIN = 1;
+    public static final int VAGA_MAX = 4;
+    public static final int MARCA_MAX = 20;
+    public static final int MODELO_MAX = 20;
+
+    public static final String REGRA_PLACA = "Placa: exatamente 7 letras ou números (ex.: ABC1234 ou ABC1D23).";
+    public static final String REGRA_VAGA = "Vaga: 1 a 4 letras ou números (ex.: A1, B12).";
+    public static final String REGRA_MARCA = "Marca: obrigatória, de 1 a 20 caracteres.";
+    public static final String REGRA_MODELO = "Modelo: opcional, até 20 caracteres.";
+
+    public static boolean roleValida(String role) {
+        return Protocolo.ROLE_ADMIN.equals(role) || Protocolo.ROLE_USER.equals(role);
+    }
+
+    public static boolean tipoValido(String tipo) {
+        return Protocolo.TIPO_ELETRICO.equals(tipo) || Protocolo.TIPO_COMBUSTAO.equals(tipo);
+    }
+
+    public static boolean statusVagaValido(String status) {
+        return Protocolo.VAGA_DISPONIVEL.equals(status) || Protocolo.VAGA_OCUPADA.equals(status)
+                || Protocolo.VAGA_FORA_DE_SERVICO.equals(status);
+    }
+
+    public static String normalizarPlaca(String placa) {
+        if (placa == null) {
+            return null;
+        }
+        String limpa = placa.strip().toUpperCase(Locale.ROOT);
+        if (limpa.length() != PLACA_TAMANHO) {
+            return null;
+        }
+        for (char c : limpa.toCharArray()) {
+            if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+                return null;
+            }
+        }
+        return limpa;
+    }
+
+    public static boolean placaValida(String placa) {
+        return normalizarPlaca(placa) != null;
+    }
+
+    public static boolean nomeVagaValido(String nome) {
+        if (nome == null || nome.length() < VAGA_MIN || nome.length() > VAGA_MAX) {
+            return false;
+        }
+        for (char c : nome.toCharArray()) {
+            if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean marcaValida(String marca) {
+        return textoLivreValido(marca, MARCA_MAX);
+    }
+
+    public static boolean modeloValido(String modelo) {
+        return modelo == null || textoLivreValido(modelo, MODELO_MAX);
+    }
+
+    private static boolean textoLivreValido(String texto, int max) {
+        if (texto == null || texto.isBlank()) {
+            return false;
+        }
+        if (texto.codePointCount(0, texto.length()) > max) {
+            return false;
+        }
+        return texto.codePoints().noneMatch(Character::isISOControl);
     }
 }
